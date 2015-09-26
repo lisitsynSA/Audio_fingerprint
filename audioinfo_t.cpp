@@ -3,41 +3,18 @@
 #include <stdlib.h>
 #include <math.h>
 #include <QtCore/qendian.h>
+#include <QDebug>
 
-audioinfo_t::audioinfo_t(const QAudioFormat &format, QObject *parent):
-      QIODevice(parent),
-      m_format(format),
-      m_maxAmplitude(0),
-      m_level(0.0)
+audioinfo_t::audioinfo_t(const QAudioFormat &init_format, QObject *parent):
+    QIODevice(parent),
+    format(init_format),
+    maxAmplitude(32767),
+    value(0),
+    level(0.0),
+    output_size(0),
+    output(NULL)
 {
-    switch (m_format.sampleSize()) {
-    case 8:
-        switch (m_format.sampleType()) {
-        case QAudioFormat::UnSignedInt:
-            m_maxAmplitude = 255;
-            break;
-        case QAudioFormat::SignedInt:
-            m_maxAmplitude = 127;
-            break;
-        default:
-            break;
-        }
-        break;
-    case 16:
-        switch (m_format.sampleType()) {
-        case QAudioFormat::UnSignedInt:
-            m_maxAmplitude = 65535;
-            break;
-        case QAudioFormat::SignedInt:
-            m_maxAmplitude = 32767;
-            break;
-        default:
-            break;
-        }
-        break;
-    default:
-        break;
-    }
+
 }
 
 audioinfo_t::~audioinfo_t()
@@ -62,12 +39,18 @@ qint64 audioinfo_t::readData(char *data, qint64 maxlen)
     return 0;
 }
 
+void audioinfo_t::set_output_size(quint32 init_size)
+{
+    output_size = init_size;
+    output = new quint16[init_size];
+}
+
 qint64 audioinfo_t::writeData(const char *data, qint64 len)
 {
-    if (m_maxAmplitude) {
-        Q_ASSERT(m_format.sampleSize() % 8 == 0);
-        const int channelBytes = m_format.sampleSize() / 8;
-        const int sampleBytes = m_format.channels() * channelBytes;
+    if (maxAmplitude) {
+        Q_ASSERT(format.sampleSize() % 8 == 0);
+        const int channelBytes = format.sampleSize() / 8;
+        const int sampleBytes = format.channels() * channelBytes;
         Q_ASSERT(len % sampleBytes == 0);
         const int numSamples = len / sampleBytes;
 
@@ -75,32 +58,24 @@ qint64 audioinfo_t::writeData(const char *data, qint64 len)
         const unsigned char *ptr = reinterpret_cast<const unsigned char *>(data);
 
         for (int i = 0; i < numSamples; ++i) {
-            for(int j = 0; j < m_format.channels(); ++j) {
-                quint16 value = 0;
-
-                if (m_format.sampleSize() == 8 && m_format.sampleType() == QAudioFormat::UnSignedInt) {
-                    value = *reinterpret_cast<const quint8*>(ptr);
-                } else if (m_format.sampleSize() == 8 && m_format.sampleType() == QAudioFormat::SignedInt) {
-                    value = qAbs(*reinterpret_cast<const qint8*>(ptr));
-                } else if (m_format.sampleSize() == 16 && m_format.sampleType() == QAudioFormat::UnSignedInt) {
-                    if (m_format.byteOrder() == QAudioFormat::LittleEndian)
-                        value = qFromLittleEndian<quint16>(ptr);
-                    else
-                        value = qFromBigEndian<quint16>(ptr);
-                } else if (m_format.sampleSize() == 16 && m_format.sampleType() == QAudioFormat::SignedInt) {
-                    if (m_format.byteOrder() == QAudioFormat::LittleEndian)
-                        value = qAbs(qFromLittleEndian<qint16>(ptr));
-                    else
-                        value = qAbs(qFromBigEndian<qint16>(ptr));
-                }
-
-                maxValue = qMax(value, maxValue);
-                ptr += channelBytes;
+            /*format.setChannels(1);
+            format.setSampleSize(16);
+            format.setSampleType(QAudioFormat::SignedInt);
+            format.setByteOrder(QAudioFormat::LittleEndian);*/
+            value = qAbs(qFromLittleEndian<qint16>(ptr));
+            if (output_size)
+            {
+                output_size--;
+                output[output_size] = value;
+                if (!output_size)
+                    emit output_ready(output);
             }
+            maxValue = qMax(value, maxValue);
+            ptr += channelBytes;
         }
 
-        maxValue = qMin(maxValue, m_maxAmplitude);
-        m_level = qreal(maxValue) / m_maxAmplitude;
+        maxValue = qMin(maxValue, maxAmplitude);
+        level = qreal(maxValue) / maxAmplitude;
     }
 
     emit update();

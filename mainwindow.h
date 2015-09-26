@@ -2,6 +2,10 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QDebug>
+#include <QAudioDeviceInfo>
+#include <QAudioInput>
+#include <QTime>
 #include "audioinfo_t.h"
 
 namespace Ui {
@@ -26,6 +30,8 @@ private slots:
     void notified();
     void readMore();
     void deviceChanged(int index);
+    void get_output(quint16* output);
+    void start_button();
 
 private:
     Ui::MainWindow *ui;
@@ -35,6 +41,9 @@ private:
     QByteArray m_buffer;
     QAudioFormat format;
     QAudioInput *input;
+
+    int output_size;
+    QTime timer;
 
 };
 
