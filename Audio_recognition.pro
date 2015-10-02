@@ -12,9 +12,11 @@ TEMPLATE = app
 
 SOURCES += main.cpp\
         mainwindow.cpp \
-    audioinfo_t.cpp
+    audioinfo_t.cpp \
+    qcustomplot.cpp
 
 HEADERS  += mainwindow.h \
-    audioinfo_t.h
+    audioinfo_t.h \
+    qcustomplot.h
 
 FORMS    += mainwindow.ui
