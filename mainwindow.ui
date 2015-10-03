@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>459</width>
-    <height>335</height>
+    <width>539</width>
+    <height>463</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -17,13 +17,13 @@
    <widget class="QWidget" name="audio_widget" native="true">
     <property name="geometry">
      <rect>
-      <x>60</x>
-      <y>70</y>
-      <width>254</width>
-      <height>149</height>
+      <x>70</x>
+      <y>30</y>
+      <width>371</width>
+      <height>371</height>
      </rect>
     </property>
-    <layout class="QGridLayout" name="gridLayout_3">
+    <layout class="QFormLayout" name="formLayout">
      <item row="0" column="0">
       <widget class="QLabel" name="label_4">
        <property name="text">
@@ -898,35 +898,35 @@
      </item>
      <item row="2" column="0" colspan="2">
       <layout class="QGridLayout" name="gridLayout_2">
-       <item row="0" column="0" colspan="2">
+       <item row="0" column="1" colspan="2">
         <widget class="QLabel" name="label_2">
          <property name="text">
           <string>Number of points:</string>
          </property>
         </widget>
        </item>
-       <item row="0" column="2">
+       <item row="0" column="3">
         <widget class="QLabel" name="label_3">
          <property name="text">
           <string>Time of getting points:</string>
          </property>
         </widget>
        </item>
-       <item row="1" column="0">
-        <widget class="QSpinBox" name="spinBox">
+       <item row="1" column="1">
+        <widget class="QSpinBox" name="spinBox_number">
          <property name="maximum">
           <number>10000</number>
          </property>
         </widget>
        </item>
-       <item row="1" column="1">
+       <item row="1" column="2">
         <widget class="QPushButton" name="start_button">
          <property name="text">
           <string>Start</string>
          </property>
         </widget>
        </item>
-       <item row="1" column="2">
+       <item row="1" column="3">
         <widget class="QLCDNumber" name="lcd_time">
          <property name="palette">
           <palette>
@@ -1348,7 +1348,31 @@
          </property>
         </widget>
        </item>
+       <item row="1" column="0">
+        <widget class="QSpinBox" name="spinBox_bundle">
+         <property name="maximum">
+          <number>10000</number>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="0">
+        <widget class="QLabel" name="label_5">
+         <property name="text">
+          <string> Bundle of points:</string>
+         </property>
+        </widget>
+       </item>
       </layout>
+     </item>
+     <item row="3" column="0" colspan="2">
+      <widget class="QCustomPlot" name="plot" native="true">
+       <property name="minimumSize">
+        <size>
+         <width>100</width>
+         <height>200</height>
+        </size>
+       </property>
+      </widget>
      </item>
     </layout>
    </widget>
@@ -1358,7 +1382,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>459</width>
+     <width>539</width>
      <height>20</height>
     </rect>
    </property>
@@ -1374,6 +1398,14 @@
   <widget class="QStatusBar" name="statusBar"/>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
+ <customwidgets>
+  <customwidget>
+   <class>QCustomPlot</class>
+   <extends>QWidget</extends>
+   <header>qcustomplot.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

@@ -15,7 +15,11 @@ MainWindow::MainWindow(QWidget *parent) :
     audioinfo = 0;
     input = 0;
     device = 0;
+    max_y = 0;
     m_buffer = QByteArray(BufferSize, 0);
+    last_point = 0;
+    bundle_size = 0;
+    last_time = 0;
 
     ui->setupUi(this);
     initializeWindow();
@@ -59,8 +63,10 @@ void MainWindow::initializeAudio()
 
     audioinfo  = new audioinfo_t(format, this);
     connect(audioinfo, SIGNAL(update()), SLOT(refreshDisplay()));
-    connect(audioinfo, SIGNAL(output_ready(quint16*)),
-            this, SLOT(get_output(quint16*)));
+    connect(audioinfo, SIGNAL(output_ready(qreal*)),
+            this, SLOT(get_output(qreal*)));
+    connect(audioinfo, SIGNAL(int_output_ready(quint16*)),
+            this, SLOT(get_int_output(quint16*)));
     createAudioInput();
 }
 
@@ -108,11 +114,10 @@ void MainWindow::refreshDisplay()
     ui->lcd_value->display(audioinfo->get_value());
 }
 
-
-void MainWindow::get_output(quint16 *output)
+void MainWindow::get_int_output(quint16 *output)
 {
-    qDebug() << "OUTPUT IS READY";
-    QFile file("output.csv");
+    qDebug() << "INT OUTPUT IS READY";
+    /*QFile file("output.csv");
     if (!file.open(QIODevice::WriteOnly)) {
         QMessageBox::warning(this, tr("Audio recognition"),
                              tr("Cannot write file %1:\n%2.")
@@ -122,7 +127,85 @@ void MainWindow::get_output(quint16 *output)
         QTextStream out(&file);
         for (int i = 0; i < output_size; i++)
             out << (int) output[i] << ";";
+    }*/
+    if (output_size)
+    {
+        double time = (double)timer.elapsed() - last_time;
+        for (int i = 0; i < output_size; ++i)
+        {
+            x.push_back(last_time + time*i/output_size);
+            y.push_back(output[i]);
+            max_y = qMax(max_y, output[i]);
+        }
+        // create graph and assign data to it:
+        ui->plot->addGraph();
+        ui->plot->graph(0)->setData(x, y);
+        // give the axes some labels:
+        ui->plot->xAxis->setLabel("Time(ms)");
+        ui->plot->yAxis->setLabel("Voise(amp)");
+
+        last_point += output_size;
+        last_time += time;
+
+        // set axes ranges, so we see all data:
+        ui->plot->xAxis->setRange(0, last_time);
+        ui->plot->yAxis->setRange(0, (double) max_y);
+        ui->plot->replot();
     }
+    if (bundle_size)
+    {
+        for (int i = 0; i < bundle_size; ++i)
+        {
+            y.push_back(output[i]);
+            y.pop_front();
+            max_y = qMax(max_y, output[i]);
+        }
+        // create graph and assign data to it:
+        ui->plot->addGraph();
+        ui->plot->graph(0)->setData(x, y);
+
+        // set axes ranges, so we see all data:
+        ui->plot->yAxis->setRange(0, (double) max_y);
+        ui->plot->replot();
+
+    }
+    delete output;
+    ui->lcd_time->display(((double)timer.elapsed())/1000);
+    continue_get_int_output();
+}
+
+void MainWindow::continue_get_int_output()
+{
+    qDebug() << "CONTINUE WRITE OUTPUT";
+    bundle_size = ui->spinBox_bundle->value();
+    output_size = 0;
+    if (bundle_size)
+        audioinfo->set_int_output_size(bundle_size);
+}
+
+void MainWindow::get_output(qreal *output)
+{
+    qDebug() << "OUTPUT IS READY";
+    /*double time = (double)timer.elapsed();
+    double max_y = 0;
+    QVector<double> x(output_size), y(output_size);
+    for (int i = 0; i < output_size; ++i)
+    {
+      x[i] = time*i/output_size;
+      y[i] = output[i];
+      max_y = qMax(max_y, y[i]);
+    }
+    // create graph and assign data to it:
+    ui->plot->addGraph();
+    ui->plot->graph(0)->setData(x, y);
+    // give the axes some labels:
+    ui->plot->xAxis->setLabel("Time(ms)");
+    ui->plot->yAxis->setLabel("Voise(%)");
+    // set axes ranges, so we see all data:
+    ui->plot->xAxis->setRange(0, time);
+    ui->plot->yAxis->setRange(0, max_y);
+    ui->plot->replot();*/
+
     delete output;
     ui->lcd_time->display(((double)timer.elapsed())/1000);
 }
@@ -131,6 +214,10 @@ void MainWindow::start_button()
 {
     qDebug() << "START WRITE OUTPUT";
     timer.start();
-    output_size = ui->spinBox->value();
-    audioinfo->set_output_size(output_size);
+    max_y = 0;
+    x.clear();
+    y.clear();
+    last_time = 0;
+    output_size = ui->spinBox_number->value();
+    audioinfo->set_int_output_size(output_size);
 }

@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui multimedia
+QT       += core gui multimedia printsupport
 
 TARGET = Audio_recognition
 TEMPLATE = app
