@@ -24,16 +24,17 @@ private:
     void initializeWindow();
     void initializeAudio();
     void createAudioInput();
-    void continue_get_int_output();
+    void continue_get_output();
 
 private slots:
     void refreshDisplay();
     void notified();
     void readMore();
     void deviceChanged(int index);
-    void get_int_output(quint16* output);
-    void get_output(qreal* output);
+    void get_output(quint16* output);
+    void print_output_csv(quint16* output);
     void start_button();
+    void start_wavelet();
 
 private:
     Ui::MainWindow *ui;
@@ -50,7 +51,6 @@ private:
 
     quint16 max_y;
     double last_time;
-    unsigned long int last_point;
     QVector<double> x, y;
 };
 

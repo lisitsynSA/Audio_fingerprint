@@ -18,7 +18,6 @@ public:
     qint64 writeData(const char *data, qint64 len);
     qreal get_level() { return level; }
     qint16 get_value() { return value; }
-    void set_int_output_size(quint32 init_size);
     void set_output_size(quint32 init_size);
 
 private:
@@ -27,15 +26,11 @@ private:
     quint16 value;
     qreal level; // 0.0 <= m_level <= 1.0
 
-    quint32 int_output_size;
-    quint16* int_output;
     quint32 output_size;
-    qreal* output;
-
+    quint16* output;
 signals:
     void update();
-    void int_output_ready(quint16* output);
-    void output_ready(qreal* output);
+    void output_ready(quint16* output);
 };
 
 #endif // AUDIOINFO_T_H
