@@ -13,10 +13,17 @@ TEMPLATE = app
 SOURCES += main.cpp\
         mainwindow.cpp \
     audioinfo_t.cpp \
-    qcustomplot.cpp
+    qcustomplot.cpp \
+    wavelet.cpp
 
 HEADERS  += mainwindow.h \
     audioinfo_t.h \
-    qcustomplot.h
+    qcustomplot.h \
+    fftw3.h
 
 FORMS    += mainwindow.ui
+
+win32: LIBS += -L$$PWD/ -llibfftw3f-3
+
+INCLUDEPATH += $$PWD/
+DEPENDPATH += $$PWD/

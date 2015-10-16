@@ -7,6 +7,7 @@
 #include <QAudioInput>
 #include <QTime>
 #include "audioinfo_t.h"
+#include "qcustomplot.h"
 
 namespace Ui {
 class MainWindow;
@@ -51,7 +52,13 @@ private:
 
     quint16 max_y;
     double last_time;
-    QVector<double> x, y;
+    QCPColorMap* colorMap;
+    QCPColorScale *colorScale;
+    QVector<double> voice_x, voice_y;
+
+    //WAVELET:
+    float FTWavelet( float value, float scale, float f0 );
+    void run_wavelet();
 };
 
 #endif // MAINWINDOW_H

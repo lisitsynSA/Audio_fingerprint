@@ -44,15 +44,34 @@ void MainWindow::initializeWindow()
             this, SLOT(deviceChanged(int)));
     connect(ui->start_button, SIGNAL(clicked()),
             this, SLOT(start_button()));
-
+    connect(ui->start_wavelet, SIGNAL(clicked()),
+            this, SLOT(start_wavelet()));
     // create graph:
     ui->plot->addGraph();
-    ui->wavelet->addGraph();
+    colorMap = new QCPColorMap(ui->wavelet->xAxis, ui->wavelet->yAxis);
+    ui->wavelet->addPlottable(colorMap);
     // give the axes some labels:
     ui->plot->xAxis->setLabel("Time(ms)");
     ui->plot->yAxis->setLabel("Voise(amp)");
     ui->wavelet->xAxis->setLabel("Time(ms)");
     ui->wavelet->yAxis->setLabel("Frequency(Hz)");
+
+
+    colorMap->data()->setSize(50, 50);
+    colorMap->data()->setRange(QCPRange(0, 2), QCPRange(0, 2));
+    for (int x=0; x<50; ++x)
+      for (int y=0; y<50; ++y)
+        colorMap->data()->setCell(x, y, qCos(x/10.0)+qSin(y/10.0));
+    colorMap->setGradient(QCPColorGradient::gpThermal);//gpThermal
+    colorMap->rescaleDataRange(true);
+    colorScale = new QCPColorScale(ui->wavelet);
+    colorScale->setGradient(QCPColorGradient::gpThermal);//gpThermal
+    colorScale->setDataRange(QCPRange(-2, 2));
+    ui->wavelet->plotLayout()->addElement(0, 1, colorScale);
+    //colorScale->setLabel("Some Label Text");
+
+    ui->wavelet->rescaleAxes();
+    ui->wavelet->replot();
 }
 
 void MainWindow::initializeAudio()
@@ -141,13 +160,13 @@ void MainWindow::print_output_csv(quint16 *output)
 void MainWindow::get_output(quint16 *output)
 {
     double time = (double)timer.elapsed() - last_time;
-    for (int i = 0; i < bundle_size; ++i)
+    for (int i = 0; i < bundle_size; i++)
     {
-        x.push_back(last_time + time*i/bundle_size);
-        y.push_back(output[i]);
-        max_y = qMax(max_y, output[i]);
+        voice_x.push_back(last_time + time*i/bundle_size);
+        voice_y.push_back(output[bundle_size - i - 1]);
+        max_y = qMax(max_y, output[bundle_size - i - 1]);
     }
-    ui->plot->graph(0)->setData(x, y);
+    ui->plot->graph(0)->setData(voice_x, voice_y);
 
     last_time += time;
 
@@ -164,9 +183,11 @@ void MainWindow::get_output(quint16 *output)
 void MainWindow::continue_get_output()
 {
     output_size -= bundle_size;
-    ui->progress_voice->setValue((int)(100*x.size()/(x.size() + output_size)));
+    ui->progress_voice->setValue((int)(100*voice_x.size()/(voice_x.size() + output_size)));
     if (output_size > 0)
         audioinfo->set_output_size(bundle_size);
+    else
+        qDebug() << "END WRITE OUTPUT";
 }
 
 void MainWindow::start_button()
@@ -174,16 +195,23 @@ void MainWindow::start_button()
     qDebug() << "START WRITE OUTPUT";
     timer.start();
     max_y = 0;
-    x.clear();
-    y.clear();
+    voice_x.clear();
+    voice_y.clear();
     last_time = 0;
     output_size = ui->spinBox_number->value();
     bundle_size = ui->spinBox_bundle->value();
-    audioinfo->set_output_size(bundle_size);
     ui->progress_voice->setValue(0);
+    audioinfo->set_output_size(bundle_size);
 }
 
 void MainWindow::start_wavelet()
 {
-    ui->progress_wavelet->setValue(0);
+    if (ui->progress_voice->value() == 100)
+    {
+        ui->progress_wavelet->setValue(0);
+        qDebug() << "START WAVELET";
+        run_wavelet();
+        qDebug() << "END WAVELET";
+        ui->progress_wavelet->setValue(100);
+    }
 }
