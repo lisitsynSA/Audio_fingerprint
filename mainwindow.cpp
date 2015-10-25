@@ -1,6 +1,6 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-
+#include <QtGui>
 #include <QtCore/qendian.h>
 
 const int BufferSize = 4096;

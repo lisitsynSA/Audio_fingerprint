@@ -6,6 +6,11 @@
 
 QT       += core gui multimedia printsupport
 
+win32 {
+    RC_FILE += file.rc
+    OTHER_FILES += file.rc
+}
+
 TARGET = Audio_recognition
 TEMPLATE = app
 
@@ -28,3 +33,6 @@ win32: LIBS += -L$$PWD/ -llibfftw3f-3
 
 INCLUDEPATH += $$PWD/
 DEPENDPATH += $$PWD/
+
+OTHER_FILES += \
+    file.rc
