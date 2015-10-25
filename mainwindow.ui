@@ -1495,16 +1495,6 @@
        </property>
       </widget>
      </item>
-     <item row="2" column="10">
-      <widget class="QLabel" name="label_9">
-       <property name="text">
-        <string>Argument:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="2" column="11">
-      <widget class="QComboBox" name="argumentBox"/>
-     </item>
      <item row="2" column="12">
       <widget class="QPushButton" name="doaction_button">
        <property name="text">
@@ -1557,13 +1547,23 @@
      <item row="5" column="2">
       <widget class="QDoubleSpinBox" name="noise_spinbox">
        <property name="maximum">
-        <double>999.990000000000009</double>
+        <double>99999.990000000005239</double>
        </property>
        <property name="singleStep">
         <double>0.000000000000000</double>
        </property>
        <property name="value">
         <double>2.000000000000000</double>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="10" colspan="2">
+      <widget class="QLineEdit" name="action_line"/>
+     </item>
+     <item row="2" column="8">
+      <widget class="QLabel" name="label_9">
+       <property name="text">
+        <string>File name:</string>
        </property>
       </widget>
      </item>

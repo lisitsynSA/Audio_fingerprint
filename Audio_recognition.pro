@@ -14,12 +14,13 @@ SOURCES += main.cpp\
         mainwindow.cpp \
     audioinfo_t.cpp \
     qcustomplot.cpp \
-    wavelet.cpp
+    wave_t.cpp
 
 HEADERS  += mainwindow.h \
     audioinfo_t.h \
     qcustomplot.h \
-    fftw3.h
+    fftw3.h \
+    wave_t.h
 
 FORMS    += mainwindow.ui
 

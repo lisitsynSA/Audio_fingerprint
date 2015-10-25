@@ -2,12 +2,13 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QVector>
 #include <QDebug>
 #include <QAudioDeviceInfo>
 #include <QAudioInput>
-#include <QTime>
 #include "audioinfo_t.h"
 #include "qcustomplot.h"
+#include "wave_t.h"
 
 namespace Ui {
 class MainWindow;
@@ -33,9 +34,10 @@ private slots:
     void readMore();
     void deviceChanged(int index);
     void get_output(quint16* output);
-    void print_output_csv(quint16* output);
     void start_button();
     void start_wavelet();
+    void wave_clearing();
+    void do_button();
 
 private:
     Ui::MainWindow *ui;
@@ -48,17 +50,8 @@ private:
 
     int output_size;
     int bundle_size;
-    QTime timer;
-
-    quint16 max_y;
-    double last_time;
-    QCPColorMap* colorMap;
-    QCPColorScale *colorScale;
-    QVector<double> voice_x, voice_y;
-
-    //WAVELET:
-    float FTWavelet( float value, float scale, float f0 );
-    void run_wavelet();
+    QVector<wave_t*> waves;
+    int current_wave;
 };
 
 #endif // MAINWINDOW_H
