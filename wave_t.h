@@ -14,13 +14,15 @@ class wave_t : public QObject
     Q_OBJECT
 
 public:
-    wave_t(Ui::MainWindow *init_ui, QObject *parent);
+    wave_t(Ui::MainWindow *init_ui, QCPColorMap* init_colorMap,\
+           QCPColorScale* init_colorScale, QObject *parent);
 
     Ui::MainWindow *ui;
 
     quint16 max_y;
     QCPColorMap* colorMap;
-    QCPColorScale *colorScale;
+    QCPColorMap* local_colorMap;
+    QCPColorScale* colorScale;
     QVector<double> voice_x, voice_y;
     QTime timer;
     double last_time;
@@ -30,10 +32,19 @@ public:
     void print_output_csv(QString file_name);
     void read_wave(QString file_name);
     void write_wave(QString file_name);
+    void load_wave();
+
+    double scale;
+    double freq_noise;
+    double lowerScale;
+    double upperScale;
+    double max;
+    double min;
 
     //WAVELET:
     float FTWavelet( float value, float scale, float f0 );
     void run_wavelet();
+    void wavelet_analysis();
 public slots:
     void wave_clearing();
 };

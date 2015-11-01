@@ -3,7 +3,6 @@
 
 #include <QMainWindow>
 #include <QVector>
-#include <QDebug>
 #include <QAudioDeviceInfo>
 #include <QAudioInput>
 #include "audioinfo_t.h"
@@ -38,6 +37,10 @@ private slots:
     void start_wavelet();
     void wave_clearing();
     void do_button();
+    void change_action(QString action);
+    void change_wave(int wave);
+    void wavelet_analysis();
+    void calculate_diff();
 
 private:
     Ui::MainWindow *ui;
@@ -47,6 +50,8 @@ private:
     QByteArray m_buffer;
     QAudioFormat format;
     QAudioInput *input;
+    QCPColorMap* colorMap;
+    QCPColorScale* colorScale;
 
     int output_size;
     int bundle_size;

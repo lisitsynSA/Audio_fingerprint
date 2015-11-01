@@ -6,36 +6,16 @@
 #include <QMessageBox>
 #include <QFile>
 
-wave_t::wave_t(Ui::MainWindow* init_ui, QObject *parent):
+wave_t::wave_t(Ui::MainWindow *init_ui, QCPColorMap* init_colorMap,\
+               QCPColorScale* init_colorScale, QObject *parent):
     QObject(parent),
     ui(init_ui),
-    max_y(0)
+    max_y(0),
+    colorMap(init_colorMap),
+    colorScale(init_colorScale)
 {
     qDebug() << "CREATE NEW WAVE";
-    ui->plot->addGraph();
-    colorMap = new QCPColorMap(ui->wavelet->xAxis, ui->wavelet->yAxis);
-    ui->wavelet->addPlottable(colorMap);
-    // give the axes some labels:
-    ui->plot->xAxis->setLabel("Time(ms)");
-    ui->plot->yAxis->setLabel("Voise(amp)");
-    ui->wavelet->xAxis->setLabel("Time(ms)");
-    ui->wavelet->yAxis->setLabel("Frequency(Hz)");
-
-    colorMap->data()->setSize(50, 50);
-    colorMap->data()->setRange(QCPRange(0, 2), QCPRange(0, 2));
-    for (int x=0; x<50; ++x)
-      for (int y=0; y<50; ++y)
-        colorMap->data()->setCell(x, y, qCos(x/10.0)+qSin(y/10.0));
-    colorMap->setGradient(QCPColorGradient::gpThermal);//gpThermal
-    colorMap->rescaleDataRange(true);
-    colorScale = new QCPColorScale(ui->wavelet);
-    colorScale->setGradient(QCPColorGradient::gpThermal);//gpThermal
-    colorScale->setDataRange(QCPRange(-2, 2));
-    ui->wavelet->plotLayout()->addElement(0, 1, colorScale);
-    //colorScale->setLabel("Some Label Text");
-
-    ui->wavelet->rescaleAxes();
-    ui->wavelet->replot();
+    local_colorMap = new QCPColorMap(ui->wavelet->xAxis, ui->wavelet->yAxis);
 }
 
 void wave_t::wave_clearing()
@@ -113,6 +93,9 @@ void wave_t::write_wave(QString file_name)
         out << last_time;
         out << voice_y;
         out << max_y;
+        QMessageBox::information(ui->doaction_button, tr("Audio recognition"),
+                                 tr("Wave has been saved to file %1.")
+                                 .arg(file.fileName()));
     }
 }
 
@@ -137,7 +120,84 @@ void wave_t::read_wave(QString file_name)
         ui->plot->yAxis->setRange(0, (double) max_y);
         ui->plot->graph(0)->setData(voice_x, voice_y);
         ui->plot->replot();
+        QMessageBox::information(ui->doaction_button, tr("Audio recognition"),
+                                 tr("Wave has been loaded from file %1.")
+                                 .arg(file.fileName()));
     }
+}
+
+void wave_t::load_wave()
+{
+    ui->plot->xAxis->setRange(0, last_time);
+    ui->plot->yAxis->setRange(0, (double) max_y);
+    ui->plot->graph(0)->setData(voice_x, voice_y);
+    ui->plot->replot();
+
+    colorMap->data()->setSize(voice_y.size(), (upperScale - lowerScale)*scale);
+    for (int time = 0; time < voice_y.size(); time++)
+    for (int freq = 0; freq < (upperScale - lowerScale)*scale; freq++)
+        colorMap->data()->setCell(time, freq, local_colorMap->data()->cell(time, freq));
+
+    colorMap->data()->setRange(QCPRange(0, last_time), QCPRange(70, 1500));
+    colorMap->rescaleDataRange(true);
+    colorScale->setDataRange(QCPRange(min, max));
+
+    ui->wavelet->addPlottable(colorMap);
+    ui->wavelet->rescaleAxes();
+    ui->wavelet->replot();
+}
+
+void wave_t::wavelet_analysis()
+{
+    scale = ui->spinBox_scale->value();
+    freq_noise = ui->freq_noise->value();
+    /// The smallest scale to render.
+    lowerScale = ui->value1->value();//20
+
+    /// The largest scale to render.
+    upperScale = ui->value2->value();//50
+
+    for (int time = 0; time < voice_y.size(); time++)
+    {
+        double max_freq = freq_noise;
+        int number_max_freq = -1;
+        for (int freq = 0; freq < (upperScale - lowerScale)*scale; freq++)
+            if (max_freq < local_colorMap->data()->cell(time, freq))
+            {
+                max_freq = local_colorMap->data()->cell(time, freq);
+                number_max_freq = freq;
+                //qDebug() << "ANALYSIS MAX: time = " << time << "; max_freq = " << max_freq << ";number = "<< number_max_freq;
+            }
+
+        if (number_max_freq != -1)
+        {
+            //qDebug() << "ANALYSIS: time = " << time << "; max_freq = " << max_freq << ";number = "<< number_max_freq;
+            int barrier = 0;
+            for (int freq = number_max_freq; freq < (upperScale - lowerScale)*scale; freq++)
+                if (local_colorMap->data()->cell(time, freq) < freq_noise)
+                {
+                    barrier = 1;
+                    local_colorMap->data()->setCell(time, freq, 0);
+                } else if (barrier){
+                    local_colorMap->data()->setCell(time, freq, 0);
+                }
+            barrier = 0;
+            for (int freq = number_max_freq; freq >= 0; freq--)
+                if (local_colorMap->data()->cell(time, freq) < freq_noise)
+                {
+                    barrier = 1;
+                    local_colorMap->data()->setCell(time, freq, 0);
+                } else if (barrier){
+                    local_colorMap->data()->setCell(time, freq, 0);
+                }
+        } else{
+            for (int freq = 0; freq < (upperScale - lowerScale)*scale; freq++)
+                local_colorMap->data()->setCell(time, freq, 0);
+        }
+        ui->progress_wavelet->setValue(((100*time)/voice_y.size()));
+
+    }
+    load_wave();
 }
 
 float wave_t::FTWavelet( float value, float scale, float f0 )
@@ -163,12 +223,13 @@ float wave_t::FTWavelet( float value, float scale, float f0 )
 
 void wave_t::run_wavelet()
 {
-    double scale = ui->spinBox_scale->value();
+    scale = ui->spinBox_scale->value();
+    freq_noise = ui->freq_noise->value();
     /// The smallest scale to render.
-    double lowerScale = 20;//20
+    lowerScale = ui->value1->value();//20
 
     /// The largest scale to render.
-    double upperScale = 50;//50
+    upperScale = ui->value2->value();//50
 
     /// "Wave number". Higher means more frequency localization. Smaller means
     /// more time localization.
@@ -201,9 +262,10 @@ void wave_t::run_wavelet()
 
     //prepare plot
     colorMap->data()->setSize(voice_y.size(), (upperScale - lowerScale)*scale);
-
+    local_colorMap->data()->setSize(voice_y.size(), (upperScale - lowerScale)*scale);
     int row = 0;
-    double max = 0, min = 1000;
+    max = 0;
+    min = 1000;
 
     for ( double period = lowerScale; period <= upperScale; period*= df, row += 1 )
     {
@@ -225,7 +287,8 @@ void wave_t::run_wavelet()
             double value = sqrt(ans[y][0]*ans[y][0]+ans[y][1]*ans[y][1]);
             min = qMin(min, value);
             max = qMax(max, value);
-            colorMap->data()->setCell(y, (upperScale - lowerScale)*scale - row, value);
+            colorMap->data()->setCell(y, (upperScale - lowerScale)*scale - row, (value > freq_noise) ? value : 0);
+            local_colorMap->data()->setCell(y, (upperScale - lowerScale)*scale - row, (value > freq_noise) ? value : 0);
         }
         //qDebug() << "Period : "<< period << "; Row : " << row << "; Max = " << max << "; Min = " << min;
         ui->progress_wavelet->setValue((int)(100*(period - lowerScale)/(upperScale - lowerScale)));

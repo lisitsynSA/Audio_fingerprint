@@ -2,6 +2,7 @@
 #include "ui_mainwindow.h"
 #include <QtGui>
 #include <QtCore/qendian.h>
+#include <QDebug>
 
 const int BufferSize = 4096;
 
@@ -17,10 +18,11 @@ MainWindow::MainWindow(QWidget *parent) :
     bundle_size = 0;
     current_wave = 0;
     ui->setupUi(this);
-    waves.push_back(new wave_t(ui, this));
 
     initializeWindow();
     initializeAudio();
+    waves.push_back(new wave_t(ui, colorMap, colorScale, this));
+    waves.push_back(new wave_t(ui, colorMap, colorScale, this));
 }
 
 MainWindow::~MainWindow()
@@ -37,7 +39,14 @@ void MainWindow::initializeWindow()
 
     ui->progress_voice->setValue(0);
     ui->progress_wavelet->setValue(0);
+    ui->actionBox->addItem("Save");
+    ui->actionBox->addItem("Load");
+    ui->actionBox->addItem("Calculate diff");
+    ui->currentBox->addItem("Main wave");
+    ui->currentBox->addItem("Argument wave");
+    ui->doaction_button->setEnabled(false);
     setCentralWidget(ui->audio_widget);
+
     connect(ui->deviceBox, SIGNAL(activated(int)),
             this, SLOT(deviceChanged(int)));
     connect(ui->start_button, SIGNAL(clicked()),
@@ -48,11 +57,37 @@ void MainWindow::initializeWindow()
             this, SLOT(wave_clearing()));
     connect(ui->doaction_button, SIGNAL(clicked()),
             this, SLOT(do_button()));
+    connect(ui->analysis_button, SIGNAL(clicked()),
+            this, SLOT(wavelet_analysis()));
+    connect(ui->actionBox, SIGNAL(currentIndexChanged(QString)),
+            this, SLOT(change_action(QString)));
+    connect(ui->currentBox, SIGNAL(currentIndexChanged(int)),
+            this, SLOT(change_wave(int)));
 
-    ui->actionBox->addItem("Save");
-    ui->actionBox->addItem("Load");
-    ui->noise_button->setEnabled(false);
-    ui->doaction_button->setEnabled(false);
+    ui->plot->addGraph();
+    colorMap = new QCPColorMap(ui->wavelet->xAxis, ui->wavelet->yAxis);
+    ui->wavelet->addPlottable(colorMap);
+    // give the axes some labels:
+    ui->plot->xAxis->setLabel("Time(ms)");
+    ui->plot->yAxis->setLabel("Voise(amp)");
+    ui->wavelet->xAxis->setLabel("Time(ms)");
+    ui->wavelet->yAxis->setLabel("Frequency(Hz)");
+
+    colorMap->data()->setSize(50, 50);
+    colorMap->data()->setRange(QCPRange(0, 2), QCPRange(0, 2));
+    for (int x=0; x<50; ++x)
+      for (int y=0; y<50; ++y)
+        colorMap->data()->setCell(x, y, qCos(x/10.0)+qSin(y/10.0));
+    colorMap->setGradient(QCPColorGradient::gpThermal);//gpThermal
+    colorMap->rescaleDataRange(true);
+    colorScale = new QCPColorScale(ui->wavelet);
+    colorScale->setGradient(QCPColorGradient::gpThermal);//gpThermal
+    colorScale->setDataRange(QCPRange(-2, 2));
+    ui->wavelet->plotLayout()->addElement(0, 1, colorScale);
+    //colorScale->setLabel("Some Label Text");
+
+    ui->wavelet->rescaleAxes();
+    ui->wavelet->replot();
 }
 
 void MainWindow::initializeAudio()
@@ -172,6 +207,58 @@ void MainWindow::do_button()
 {
     if (ui->actionBox->currentText() == "Save")
         waves[current_wave]->write_wave(ui->action_line->text());
-    if (ui->actionBox->currentText() == "Load")
+    else if (ui->actionBox->currentText() == "Load")
+    {
+        ui->progress_voice->setValue(100);
         waves[current_wave]->read_wave(ui->action_line->text());
+    } else if (ui->actionBox->currentText() == "Calculate diff")
+        calculate_diff();
+}
+
+void MainWindow::change_action(QString action)
+{
+    if (action == "Save" && ui->progress_voice->value() != 100)
+        ui->doaction_button->setEnabled(false);
+    else
+        ui->doaction_button->setEnabled(true);
+}
+
+void MainWindow::change_wave(int wave)
+{
+    current_wave = wave;
+    waves[current_wave]->load_wave();
+}
+
+void MainWindow::wavelet_analysis()
+{
+    if (ui->progress_wavelet->value() == 100)
+    {
+        waves[current_wave]->wavelet_analysis();
+        ui->progress_wavelet->setValue(100);
+    }
+}
+
+void MainWindow::calculate_diff()
+{
+    double scale = ui->spinBox_scale->value();
+    double lowerScale = ui->value1->value();
+    double upperScale = ui->value2->value();
+    double diff = 0;
+    double max = 0, min = 0;
+    int last_time = qMin(waves[0]->voice_y.size(), waves[1]->voice_y.size());
+
+    for (int freq = 0; freq < (upperScale - lowerScale)*scale; freq++)
+    for (int time = 0; time < last_time; time++)
+    {
+        diff = waves[0]->local_colorMap->data()->cell(time, freq) -\
+               waves[1]->local_colorMap->data()->cell(time, freq);
+        min = qMin(min, diff);
+        max = qMax(max, diff);
+        colorMap->data()->setCell(time, freq, diff);
+    }
+    colorMap->data()->setRange(QCPRange(0, last_time), QCPRange(70, 1500));
+    colorMap->rescaleDataRange(true);
+    colorScale->setDataRange(QCPRange(min, max));
+    ui->wavelet->rescaleAxes();
+    ui->wavelet->replot();
 }
